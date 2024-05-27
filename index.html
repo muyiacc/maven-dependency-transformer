@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Maven Dependency Transformer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #444;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+        button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output-container {
+            margin-top: 20px;
+            position: relative;
+        }
+        pre {
+            background-color: #f4f4f9;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+        .copy-dependency-button {
+            background-color: #28a745;
+        }
+        .copy-dependency-button:hover {
+            background-color: #218838;
+        }
+        .copy-property-button {
+            background-color: #17a2b8;
+        }
+        .copy-property-button:hover {
+            background-color: #138496;
+        }
+        .copy-success {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            font-size: 14px;
+        }
+        .copy-success.dependency {
+            background-color: #28a745;
+        }
+        .copy-success.property {
+            background-color: #17a2b8;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dependency Transformer</h1>
+        <label for="input">输入原始依赖项：</label>
+        <textarea id="input"></textarea>
+        <button onclick="transform()">转换</button>
+        <div class="output-container">
+            <h2>转换后的依赖项：</h2>
+            <button class="copy-button copy-dependency-button" onclick="copyToClipboard('outputDependency', 'dependency')">复制</button>
+            <pre id="outputDependency"></pre>
+        </div>
+        <div class="output-container">
+            <h2>属性声明：</h2>
+            <button class="copy-button copy-property-button" onclick="copyToClipboard('outputProperty', 'property')">复制</button>
+            <pre id="outputProperty"></pre>
+        </div>
+    </div>
+    <div class="copy-success dependency" id="copySuccessDependency">复制成功!</div>
+    <div class="copy-success property" id="copySuccessProperty">复制成功!</div>
+    <div class="footer">GPT 辅助生成</div>
+
+    <script>
+        function transform() {
+            const input = document.getElementById('input').value;
+
+            // 使用正则表达式匹配输入中的所有 dependency 块
+            const dependencyBlocks = input.match(/<dependency>[\s\S]*?<\/dependency>/g);
+
+            if (!dependencyBlocks) {
+                alert("输入格式不正确");
+                return;
+            }
+
+            let newDependencies = '';
+            let propertyDeclarations = '';
+
+            dependencyBlocks.forEach(block => {
+                const groupIdMatch = block.match(/<groupId>(.*?)<\/groupId>/);
+                const artifactIdMatch = block.match(/<artifactId>(.*?)<\/artifactId>/);
+                const versionMatch = block.match(/<version>(.*?)<\/version>/);
+
+                if (groupIdMatch && artifactIdMatch && versionMatch) {
+                    const groupId = groupIdMatch[1];
+                    const artifactId = artifactIdMatch[1];
+                    const version = versionMatch[1];
+
+                    // 生成新的依赖项和属性声明
+                    newDependencies += `
+<dependency>
+    <groupId>${groupId}</groupId>
+    <artifactId>${artifactId}</artifactId>
+    <version>\${${artifactId}.version}</version>
+</dependency>`;
+
+                    propertyDeclarations += `
+<${artifactId}.version>${version}</${artifactId}.version>`;
+                }
+            });
+
+            // 显示结果
+            document.getElementById('outputDependency').textContent = newDependencies.trim();
+            document.getElementById('outputProperty').textContent = propertyDeclarations.trim();
+        }
+
+        function copyToClipboard(elementId, type) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showCopySuccess(type);
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        }
+
+        function showCopySuccess(type) {
+            const copySuccess = type === 'dependency' ? document.getElementById('copySuccessDependency') : document.getElementById('copySuccessProperty');
+            copySuccess.style.display = 'block';
+            setTimeout(() => {
+                copySuccess.style.display = 'none';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
